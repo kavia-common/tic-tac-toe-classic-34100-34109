@@ -162,6 +162,47 @@ body {
   box-shadow: 0 3px 0 #1d4ed8;
 }
 
+.mode-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 8px 0 10px 0;
+}
+
+.btn-toggle {
+  background: #eef2ff;
+  color: #1e3a8a;
+  border: 2px solid #c7d2fe;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #93c5fd;
+  transition: transform 0.06s ease, box-shadow 0.06s ease, opacity 0.15s ease, background 0.15s ease;
+}
+
+.btn-toggle:hover {
+  opacity: 0.95;
+  transform: translateY(-1px);
+}
+
+.btn-toggle:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 0 #93c5fd;
+}
+
+.btn-toggle.active {
+  background: #dbeafe;
+  border-color: #93c5fd;
+}
+
+.square:disabled {
+  cursor: not-allowed;
+  background: #f9fafb;
+  opacity: 0.9;
+}
+
 .footnote {
   margin-top: 16px;
   text-align: center;
