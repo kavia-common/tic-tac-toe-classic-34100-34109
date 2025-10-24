@@ -8,6 +8,7 @@ This project provides a minimal React template with a clean, modern UI and minim
 - **Modern UI**: Clean, responsive design with KAVIA brand styling
 - **Fast**: Minimal dependencies for quick loading times
 - **Simple**: Easy to understand and modify
+- **Retro Audio**: Tic Tac Toe includes retro sound effects for moves, wins, and draws with a per-session Mute toggle.
 
 ## Getting Started
 
@@ -26,6 +27,16 @@ Launches the test runner in interactive watch mode.
 
 Builds the app for production to the `build` folder.\
 It correctly bundles React in production mode and optimizes the build for the best performance.
+
+## Sound Effects
+
+- Paths used at runtime:
+  - Move: `/assets/sounds/move.mp3`
+  - Win: `/assets/sounds/win.mp3`
+  - Draw: `/assets/sounds/draw.mp3`
+- Keep these files small (short .mp3 recommended, <20KB each).
+- Mute toggle persists in `localStorage` under key `ttt-muted` (`'1'` for muted, `'0'` otherwise).
+- Playback is debounced and guarded to avoid stacking on rapid clicks. AI moves also trigger the move sound.
 
 ## Customization
 

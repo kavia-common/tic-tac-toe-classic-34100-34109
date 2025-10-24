@@ -1,0 +1,4 @@
+# Binary audio asset placeholder note:
+# In the Kavia environment, binary files are not written via file_operations to avoid corruption.
+# At runtime, this file path is used: /assets/sounds/draw.mp3
+# Please ensure a distinct short draw tone is placed here in deployment.

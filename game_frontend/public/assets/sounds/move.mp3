@@ -1,0 +1,4 @@
+# Binary audio asset placeholder note:
+# In the Kavia environment, binary files are not written via file_operations to avoid corruption.
+# At runtime, this file path is used: /assets/sounds/move.mp3
+# Please ensure a small retro "bleep" move sound is placed here in deployment.

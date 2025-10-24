@@ -136,7 +136,9 @@ body {
 .controls {
   display: flex;
   justify-content: center;
+  align-items: center;
   margin-top: 16px;
+  gap: 8px;
 }
 
 .btn-reset {
@@ -179,7 +181,8 @@ body {
   letter-spacing: 0.5px;
   cursor: pointer;
   box-shadow: 0 3px 0 #93c5fd;
-  transition: transform 0.06s ease, box-shadow 0.06s ease, opacity 0.15s ease, background 0.15s ease;
+  transition: transform 0.06s ease, box-shadow 0.06s ease, opacity 0.15s ease, background 0.15s ease, filter 0.15s ease;
+  line-height: 1;
 }
 
 .btn-toggle:hover {

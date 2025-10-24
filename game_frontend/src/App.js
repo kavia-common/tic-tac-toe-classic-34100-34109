@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import './App.css';
 import './styles/theme.css';
 import Board from './components/Board';
@@ -13,6 +13,7 @@ import StatusBar from './components/StatusBar';
  * - In Single Player mode: human is X (goes first), AI is O and plays after 300ms delay.
  * - StatusBar reflects mode and whose turn it is.
  * - Reset returns to a fresh board with X to move.
+ * - Sound: Retro move/win/draw effects with a Mute toggle. Mute persists per session via localStorage (key: "ttt-muted").
  */
 // PUBLIC_INTERFACE
 function App() {
@@ -26,6 +27,57 @@ function App() {
   // Prevent user input during AI turn
   const [isAiThinking, setIsAiThinking] = useState(false);
 
+  // Sound & mute state (persisted)
+  const [muted, setMuted] = useState(() => {
+    try {
+      return localStorage.getItem('ttt-muted') === '1';
+    } catch {
+      return false;
+    }
+  });
+
+  // Create Audio elements via refs to avoid re-creating on every render
+  const moveAudioRef = useRef(null);
+  const winAudioRef = useRef(null);
+  const drawAudioRef = useRef(null);
+
+  // Debounce guard to prevent stacking on rapid clicks
+  const lastMovePlayedAtRef = useRef(0);
+
+  // Initialize audio only once
+  useEffect(() => {
+    // Use small mp3s placed in public/assets/sounds/
+    moveAudioRef.current = new Audio('/assets/sounds/move.mp3');
+    winAudioRef.current = new Audio('/assets/sounds/win.mp3');
+    drawAudioRef.current = new Audio('/assets/sounds/draw.mp3');
+
+    // Slightly lower the volume to keep it subtle
+    if (moveAudioRef.current) moveAudioRef.current.volume = 0.4;
+    if (winAudioRef.current) winAudioRef.current.volume = 0.55;
+    if (drawAudioRef.current) drawAudioRef.current.volume = 0.45;
+
+    // Do not loop
+    if (moveAudioRef.current) moveAudioRef.current.loop = false;
+    if (winAudioRef.current) winAudioRef.current.loop = false;
+    if (drawAudioRef.current) drawAudioRef.current.loop = false;
+
+    return () => {
+      // Cleanup references to help GC
+      moveAudioRef.current = null;
+      winAudioRef.current = null;
+      drawAudioRef.current = null;
+    };
+  }, []);
+
+  // Persist mute flag
+  useEffect(() => {
+    try {
+      localStorage.setItem('ttt-muted', muted ? '1' : '0');
+    } catch {
+      // ignore
+    }
+  }, [muted]);
+
   // Compute winner and draw states
   const winner = useMemo(() => calculateWinner(squares), [squares]);
   const isDraw = useMemo(
@@ -34,6 +86,57 @@ function App() {
   );
 
   const currentPlayer = xIsNext ? 'X' : 'O';
+
+  // Play helper functions (guard against stacking and mute)
+  const playMove = useCallback(() => {
+    if (muted) return;
+    const now = Date.now();
+    if (now - lastMovePlayedAtRef.current < 60) {
+      // Prevent stacking if another move sound was just played
+      return;
+    }
+    lastMovePlayedAtRef.current = now;
+    const el = moveAudioRef.current;
+    if (el) {
+      try {
+        // Restart from beginning
+        el.currentTime = 0;
+        // Stop if currently playing to avoid overlap
+        el.pause();
+        el.play().catch(() => {});
+      } catch {
+        // ignore play failures
+      }
+    }
+  }, [muted]);
+
+  const playWin = useCallback(() => {
+    if (muted) return;
+    const el = winAudioRef.current;
+    if (el) {
+      try {
+        el.currentTime = 0;
+        el.pause();
+        el.play().catch(() => {});
+      } catch {
+        // ignore
+      }
+    }
+  }, [muted]);
+
+  const playDraw = useCallback(() => {
+    if (muted) return;
+    const el = drawAudioRef.current;
+    if (el) {
+      try {
+        el.currentTime = 0;
+        el.pause();
+        el.play().catch(() => {});
+      } catch {
+        // ignore
+      }
+    }
+  }, [muted]);
 
   // PUBLIC_INTERFACE
   const handleSquareClick = (index) => {
@@ -47,6 +150,8 @@ function App() {
     next[index] = xIsNext ? 'X' : 'O';
     setSquares(next);
     setXIsNext(!xIsNext);
+    // Play move sound on valid human move
+    playMove();
   };
 
   // AI move selection with simple heuristic (center > corners > edges)
@@ -99,6 +204,8 @@ function App() {
           }
           const next = prev.slice();
           next[aiIndex] = 'O';
+          // Play move sound for AI move too
+          playMove();
           return next;
         });
         setXIsNext(true);
@@ -110,13 +217,34 @@ function App() {
       // Human's turn
       setIsAiThinking(false);
     }
-  }, [mode, xIsNext, winner, isDraw, selectAiMove]);
+  }, [mode, xIsNext, winner, isDraw, selectAiMove, playMove]);
+
+  // Outcome sounds: fire once when a terminal state is first reached
+  const terminalPlayedRef = useRef(false);
+  useEffect(() => {
+    if (winner) {
+      if (!terminalPlayedRef.current) {
+        playWin();
+        terminalPlayedRef.current = true;
+      }
+    } else if (isDraw) {
+      if (!terminalPlayedRef.current) {
+        playDraw();
+        terminalPlayedRef.current = true;
+      }
+    } else {
+      // Reset terminal state when game isn't over
+      terminalPlayedRef.current = false;
+    }
+  }, [winner, isDraw, playWin, playDraw]);
 
   // PUBLIC_INTERFACE
   const resetGame = () => {
     setSquares(Array(9).fill(null));
     setXIsNext(true); // X always starts
     setIsAiThinking(false);
+    // also clear terminal guard so new game can play outcome later
+    terminalPlayedRef.current = false;
   };
 
   // PUBLIC_INTERFACE
@@ -126,6 +254,12 @@ function App() {
     setSquares(Array(9).fill(null));
     setXIsNext(true);
     setIsAiThinking(false);
+    terminalPlayedRef.current = false;
+  };
+
+  // PUBLIC_INTERFACE
+  const toggleMute = () => {
+    setMuted((m) => !m);
   };
 
   const isBoardDisabled = Boolean(winner) || isDraw || (mode === 'pve' && isAiThinking);
@@ -168,9 +302,19 @@ function App() {
           disabled={isBoardDisabled}
         />
 
-        <div className="controls">
+        <div className="controls" style={{ gap: 8 }}>
           <button className="btn-reset" onClick={resetGame} aria-label="Start a new game">
             ↻ New Game
+          </button>
+          <button
+            className="btn-toggle"
+            onClick={toggleMute}
+            aria-pressed={muted}
+            aria-label={muted ? 'Unmute sounds' : 'Mute sounds'}
+            title={muted ? 'Unmute sounds' : 'Mute sounds'}
+            style={{ minWidth: 90 }}
+          >
+            {muted ? '🔇 Mute' : '🔊 Sound'}
           </button>
         </div>
         <footer className="footnote">
